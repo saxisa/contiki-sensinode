@@ -82,7 +82,7 @@
 /* For Debug, logging, statistics                                            */
 /*---------------------------------------------------------------------------*/
 
-#define DEBUG DEBUG_NONE
+#define DEBUG DEBUG_PRINT
 #include "net/uip-debug.h"
 
 #if UIP_CONF_IPV6_RPL
@@ -364,8 +364,8 @@ upper_layer_chksum(uint8_t proto)
   
   upper_layer_len = (((uint16_t)(UIP_IP_BUF->len[0]) << 8) + UIP_IP_BUF->len[1] - uip_ext_len);
   
-  PRINTF("Upper layer checksum len: %d from: %d\n", upper_layer_len,
-	 UIP_IPH_LEN + UIP_LLH_LEN + uip_ext_len);
+ // PRINTF("Upper layer checksum len: %d from: %d\n", upper_layer_len,
+//	 UIP_IPH_LEN + UIP_LLH_LEN + uip_ext_len);
 
   /* First sum pseudoheader. */
   /* IP protocol and length fields. This addition cannot carry. */
@@ -506,8 +506,8 @@ remove_ext_hdr(void)
 {
   /* Remove ext header before TCP/UDP processing. */
   if(uip_ext_len > 0) {
-    PRINTF("Cutting ext-header before processing (extlen: %d, uiplen: %d)\n",
-	   uip_ext_len, uip_len);
+ //   PRINTF("Cutting ext-header before processing (extlen: %d, uiplen: %d)\n",
+//	   uip_ext_len, uip_len);
     if(uip_len < UIP_IPH_LEN + uip_ext_len) {
       PRINTF("ERROR: uip_len too short compared to ext len\n");
       uip_ext_len = 0;
@@ -906,6 +906,7 @@ uip_process(uint8_t flag)
 #if UIP_TCP
   register struct uip_conn *uip_connr = uip_conn;
 #endif /* UIP_TCP */
+printf("[][]flag is %d\n", flag);
 #if UIP_UDP
   if(flag == UIP_UDP_SEND_CONN) {
     goto udp_send;
@@ -1210,7 +1211,8 @@ uip_process(uint8_t flag)
   uip_ext_len = 0;
   uip_ext_bitmap = 0;
 #endif /* UIP_CONF_ROUTER */
-
+	watchdog_periodic();
+PRINTF("[][]Our DEBUG: uip6.c Before swich packet: protocol %d\n", *uip_next_hdr);
   while(1) {
     switch(*uip_next_hdr){
 #if UIP_TCP
@@ -1353,7 +1355,7 @@ uip_process(uint8_t flag)
   
   icmp6_input:
   /* This is IPv6 ICMPv6 processing code. */
-  PRINTF("icmp6_input: length %d type: %d \n", uip_len, UIP_ICMP_BUF->type);
+ // PRINTF("icmp6_input: length %d type: %d \n", uip_len, UIP_ICMP_BUF->type);
 
 #if UIP_CONF_IPV6_CHECKS
   /* Compute and check the ICMP header checksum */
@@ -1752,11 +1754,13 @@ uip_process(uint8_t flag)
 #if UIP_ACTIVE_OPEN
  tcp_send_synack:
   UIP_TCP_BUF->flags = TCP_ACK;
-  
+  PRINTF("[][] tcp_send_synack\n");
  tcp_send_syn:
+PRINTF("[][] tcp_send_syn\n");
   UIP_TCP_BUF->flags |= TCP_SYN;
 #else /* UIP_ACTIVE_OPEN */
  tcp_send_synack:
+PRINTF("[][] tcp_send_synack\n");
   UIP_TCP_BUF->flags = TCP_SYN | TCP_ACK;
 #endif /* UIP_ACTIVE_OPEN */
   
@@ -1784,6 +1788,7 @@ uip_process(uint8_t flag)
     UIP_LOG("tcp: got reset, aborting connection.");
     uip_flags = UIP_ABORT;
     UIP_APPCALL();
+PRINTF("[][]In found drop 1\n");
     goto drop;
   }
   /* Calculate the length of the data, if the application has sent
@@ -1858,7 +1863,7 @@ uip_process(uint8_t flag)
     }
     
   }
-
+PRINTF("[][]in found connection state: %d\n", uip_connr->tcpstateflags & UIP_TS_MASK);
   /* Do different things depending on in what state the connection is. */
   switch(uip_connr->tcpstateflags & UIP_TS_MASK) {
     /* CLOSED and LISTEN are not handled here. CLOSE_WAIT is not
@@ -1886,6 +1891,7 @@ uip_process(uint8_t flag)
       if((UIP_TCP_BUF->flags & TCP_CTL) == TCP_SYN) {
 	goto tcp_send_synack;
       }
+PRINTF("[][]In found drop 2\n");
       goto drop;
 #if UIP_ACTIVE_OPEN
     case UIP_SYN_SENT:
@@ -1963,6 +1969,7 @@ uip_process(uint8_t flag)
 
       if(UIP_TCP_BUF->flags & TCP_FIN && !(uip_connr->tcpstateflags & UIP_STOPPED)) {
         if(uip_outstanding(uip_connr)) {
+PRINTF("[][]In found drop 3\n");
           goto drop;
         }
         uip_add_rcv_nxt(1 + uip_len);
@@ -2121,6 +2128,7 @@ uip_process(uint8_t flag)
           goto tcp_send_noopts;
         }
       }
+PRINTF("[][]drop in appsend or apprexmit\n");
       goto drop;
     case UIP_LAST_ACK:
       /* We can close this connection if the peer has acknowledged our
@@ -2192,12 +2200,15 @@ uip_process(uint8_t flag)
   /* We jump here when we are ready to send the packet, and just want
      to set the appropriate TCP sequence numbers in the TCP header. */
  tcp_send_ack:
+PRINTF("[][]tcp_send_ack\n");
   UIP_TCP_BUF->flags = TCP_ACK;
 
  tcp_send_nodata:
+PRINTF("[][]tcp_send_nodata\n");
   uip_len = UIP_IPTCPH_LEN;
 
  tcp_send_noopts:
+PRINTF("[][]tcp_send_noopts\n");
   UIP_TCP_BUF->tcpoffset = (UIP_TCPH_LEN / 4) << 4;
 
   /* We're done with the input processing. We are now ready to send a
@@ -2268,6 +2279,7 @@ uip_process(uint8_t flag)
   return;
 
  drop:
+PRINTF("[][]Our DEBUG: uip6.c DROP packet\n");
   uip_len = 0;
   uip_ext_len = 0;
   uip_ext_bitmap = 0;

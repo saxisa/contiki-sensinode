@@ -53,7 +53,7 @@ static uint16_t len;
 #define SERVER_REPLY          1
 
 /* Should we act as RPL root? */
-#define SERVER_RPL_ROOT       1
+#define SERVER_RPL_ROOT       0
 
 #if SERVER_RPL_ROOT
 static uip_ipaddr_t ipaddr;
@@ -162,10 +162,11 @@ PROCESS_THREAD(udp_server_process, ev, data)
   udp_bind(server_conn, UIP_HTONS(3000));
 
   PRINTF("Listen port: 3000, TTL=%u\n", server_conn->ttl);
-
+   print_local_addresses();
   while(1) {
     PROCESS_YIELD();
     if(ev == tcpip_event) {
+   print_local_addresses();
       tcpip_handler();
 #if (BUTTON_SENSOR_ON && (DEBUG==DEBUG_PRINT))
     } else if(ev == sensors_event && data == &button_sensor) {

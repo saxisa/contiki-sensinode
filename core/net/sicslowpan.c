@@ -437,7 +437,7 @@ uncompress_addr(uip_ipaddr_t *ipaddr, uint8_t const prefix[],
   prefcount = prefcount == 15 ? 16 : prefcount;
   postcount = postcount == 15 ? 16 : postcount;
 
-  PRINTF("Uncompressing %d + %d => ", prefcount, postcount);
+  //PRINTF("Uncompressing %d + %d => ", prefcount, postcount);
 
   if(prefcount > 0) {
     memcpy(ipaddr, prefix, prefcount);
@@ -503,12 +503,12 @@ compress_hdr_hc06(rimeaddr_t *rime_destaddr)
   uint8_t tmp, iphc0, iphc1;
 #if DEBUG
   { uint16_t ndx;
-    PRINTF("before compression (%d): ", UIP_IP_BUF->len[1]);
+    //PRINTF("before compression (%d): ", UIP_IP_BUF->len[1]);
     for(ndx = 0; ndx < UIP_IP_BUF->len[1] + 40; ndx++) {
       uint8_t data = ((uint8_t *) (UIP_IP_BUF))[ndx];
-      PRINTF("%02x", data);
+    //  PRINTF("%02x", data);
     }
-    PRINTF("\n");
+   // PRINTF("\n");
   }
 #endif
 
@@ -1346,7 +1346,7 @@ send_packet(rimeaddr_t *dest)
   /* Provide a callback function to receive the result of
      a packet transmission. */
   NETSTACK_MAC.send(&packet_sent, NULL);
-
+PRINTFO("[][]Our Debug: sicslowpan.c: sending packet\n");
   /* If we are sending multiple packets in a row, we need to let the
      watchdog know that we are still alive. */
   watchdog_periodic();
@@ -1764,6 +1764,7 @@ input(void)
   if(processed_ip_in_len == 0 || (processed_ip_in_len == sicslowpan_len)) {
     PRINTFI("sicslowpan input: IP packet ready (length %d)\n",
            sicslowpan_len);
+	watchdog_periodic();
     memcpy((uint8_t *)UIP_IP_BUF, (uint8_t *)SICSLOWPAN_IP_BUF, sicslowpan_len);
     uip_len = sicslowpan_len;
     sicslowpan_len = 0;
@@ -1773,12 +1774,12 @@ input(void)
 #if DEBUG
     {
       uint16_t ndx;
-      PRINTF("after decompression %u:", SICSLOWPAN_IP_BUF->len[1]);
+      //PRINTF("after decompression %u:", SICSLOWPAN_IP_BUF->len[1]);
       for (ndx = 0; ndx < SICSLOWPAN_IP_BUF->len[1] + 40; ndx++) {
         uint8_t data = ((uint8_t *) (SICSLOWPAN_IP_BUF))[ndx];
-        PRINTF("%02x", data);
+ //       PRINTF("%02x", data);
       }
-      PRINTF("\n");
+   //   PRINTF("\n");
     }
 #endif
 

@@ -12,6 +12,17 @@
 
 #include "models.h"
 
+/* XXX argh, ugly hack to make stuff compile! */
+#define snprintf(BUF, SIZE, ...) sprintf(BUF, __VA_ARGS__)
+
+#ifndef BV
+#define BV(x) (1<<(x))
+#endif
+
+#define _NOP() __asm\
+		nop\
+		__endasm;\
+
 /*
  * Define this as 1 to poll the etimer process from within main instead of from
  * the clock ISR. This reduces the ISR's stack usage and may prevent crashes.
@@ -194,7 +205,7 @@
 #define UIP_CONF_NETIF_MAX_ADDRESSES         3
 
 /* TCP, UDP, ICMP */
-#define UIP_CONF_TCP                         0
+#define UIP_CONF_TCP                         1
 #define UIP_CONF_UDP                         1
 #define UIP_CONF_UDP_CHECKSUMS               1
 
@@ -202,6 +213,8 @@
 #ifndef UIP_CONF_ROUTER
 #define UIP_CONF_ROUTER                      1
 #endif
+
+#define UIP_CONF_LOGGING		 1
 
 /* Prevent SDCC compile error when UIP_CONF_ROUTER == 0 */
 #if !UIP_CONF_ROUTER
@@ -235,7 +248,7 @@
 /* 6lowpan */
 #define SICSLOWPAN_CONF_COMPRESSION          SICSLOWPAN_COMPRESSION_HC06
 #ifndef SICSLOWPAN_CONF_FRAG
-#define SICSLOWPAN_CONF_FRAG                 0 /* About 2KB of CODE if 1 */
+#define SICSLOWPAN_CONF_FRAG                 1 /* About 2KB of CODE if 1 */
 #endif
 #define SICSLOWPAN_CONF_MAXAGE               8
 
@@ -257,4 +270,6 @@
 #define QUEUEBUF_CONF_NUM                    8
 #endif /* UIP_CONF_IPV6 */
 
+
+void delay_us(int x);
 #endif /* __CONTIKI_CONF_H__ */

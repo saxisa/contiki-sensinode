@@ -48,12 +48,27 @@
 #endif
 
 #ifndef SDA_0
-#define SDA_0()   (SHT11_PxDIR |=  BV(SHT11_ARCH_SDA))	/* SDA Output=0 */
-#define SDA_1()   (SHT11_PxDIR &= ~BV(SHT11_ARCH_SDA))	/* SDA Input */
+#define SET_SDA_OUT() ((SHT11_PxDIR |= BV(SHT11_ARCH_SDA))) 
+#define SET_SDA_IN() ((SHT11_PxDIR &= ~BV(SHT11_ARCH_SDA)))
+
+#define SET_SCL_OUT() ((SHT11_PxDIR |= BV(SHT11_ARCH_SCL)))
+
+#define SDA_0()  { \
+	SET_SDA_OUT(); \
+	(SHT11_PxOUT &= ~BV(SHT11_ARCH_SDA)); \
+}
+
+#define SDA_1()  { \
+	SET_SDA_OUT(); \
+	(SHT11_PxOUT |=  BV(SHT11_ARCH_SDA)); \
+}
+
 #define SDA_IS_1  (SHT11_PxIN & BV(SHT11_ARCH_SDA))
 
 #define SCL_0()   (SHT11_PxOUT &= ~BV(SHT11_ARCH_SCL))	/* SCL Output=0 */
 #define SCL_1()   (SHT11_PxOUT |=  BV(SHT11_ARCH_SCL))	/* SCL Output=1 */
+
+
 #endif
 				/* adr   command  r/w */
 #define  STATUS_REG_W   0x06	/* 000    0011    0 */
@@ -63,8 +78,10 @@
 #define  RESET          0x1e	/* 000    1111    0 */
 
 /* This can probably be reduced to 250ns according to data sheet. */
+
+
 #ifndef delay_400ns
-#define delay_400ns() _NOP()
+#define delay_400ns() delay_us(20)
 #endif
 /*---------------------------------------------------------------------------*/
 static void
@@ -125,6 +142,7 @@ swrite(unsigned _c)
   SDA_1();
   SCL_1();
   delay_400ns();
+  SET_SDA_IN();
   ret = !SDA_IS_1;
 
   SCL_0();
@@ -137,8 +155,8 @@ sread(int send_ack)
 {
   int i;
   unsigned char c = 0x00;
-
   SDA_1();
+  SET_SDA_IN();
   for(i = 0; i < 8; i++) {
     c <<= 1;
     SCL_1();
@@ -158,7 +176,7 @@ sread(int send_ack)
   SCL_0();
 
   SDA_1();			/* Release SDA */
-
+	
   return c;
 }
 /*---------------------------------------------------------------------------*/
@@ -203,29 +221,7 @@ crc8_add(unsigned acc, unsigned byte)
 void
 sht11_init(void)
 {
-  /*
-   * SCL Output={0,1}
-   * SDA 0: Output=0
-   *     1: Input and pull-up (Output=0)
-   */
-#ifdef SHT11_INIT
-  SHT11_INIT();
-#else
-  /* As this driver is bit-bang based, disable the I2C first
-     This assumes the SDA/SCL pins passed in the -arch.h file are 
-     actually the same used for I2C operation, else comment out the following
-  */
-  #warning SHT11: DISABLING I2C BUS
-  SHT11_PxSEL &= ~(BV(SHT11_ARCH_SDA) | BV(SHT11_ARCH_SCL));
-  #if defined(__MSP430_HAS_MSP430X_CPU__) || defined(__MSP430_HAS_MSP430XV2_CPU__)
-    SHT11_PxREN &= ~(BV(SHT11_ARCH_SDA) | BV(SHT11_ARCH_SCL));
-  #endif
-
-  /* Configure SDA/SCL as GPIOs */
-  SHT11_PxOUT |= BV(SHT11_ARCH_PWR);
-  SHT11_PxOUT &= ~(BV(SHT11_ARCH_SDA) | BV(SHT11_ARCH_SCL));
-  SHT11_PxDIR |= BV(SHT11_ARCH_PWR) | BV(SHT11_ARCH_SCL);
-#endif
+	SET_SCL_OUT();
 }
 /*---------------------------------------------------------------------------*/
 /*
@@ -234,13 +230,7 @@ sht11_init(void)
 void
 sht11_off(void)
 {
-#ifdef SHT11_OFF
-  SHT11_OFF();
-#else
-  SHT11_PxOUT &= ~BV(SHT11_ARCH_PWR);
-  SHT11_PxOUT &= ~(BV(SHT11_ARCH_SDA) | BV(SHT11_ARCH_SCL));
-  SHT11_PxDIR |= BV(SHT11_ARCH_PWR) | BV(SHT11_ARCH_SCL);
-#endif
+
 }
 /*---------------------------------------------------------------------------*/
 /*
@@ -261,7 +251,7 @@ scmd(unsigned cmd)
     PRINTF("SHT11: scmd - swrite failed\n");
     goto fail;
   }
-
+  SET_SDA_IN();
   for(n = 0; n < 20000; n++) {
     if(!SDA_IS_1) {
       unsigned t0, t1, rcrc;

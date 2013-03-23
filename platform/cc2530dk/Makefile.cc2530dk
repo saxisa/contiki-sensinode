@@ -14,7 +14,8 @@ CONTIKI_TARGET_SOURCEFILES += button-sensor.c adc-sensor.c
 CONTIKI_TARGET_SOURCEFILES += serial-line.c slip-arch.c slip.c
 CONTIKI_TARGET_SOURCEFILES += putchar.c debug.c
 CONTIKI_TARGET_SOURCEFILES += usb-serial.c
-
+CONTIKI_TARGET_SOURCEFILES += sht11.c sht11-sensor.c
+CONTIKI_TARGET_SOURCEFILES += i2c.c tsl2561-sensor.c
 CONTIKI_SOURCEFILES += $(CONTIKI_TARGET_SOURCEFILES)
 
 CLEAN += *.cc2530dk

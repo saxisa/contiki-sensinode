@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005, Swedish Institute of Computer Science
+ * Copyright (c) 2007, Swedish Institute of Computer Science
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,73 +30,26 @@
  *
  */
 
-#include <stdlib.h>
+/**
+ * \file
+ *	Architecture-specific definitions for the SHT11 sensor on Tmote Sky.
+ * \author
+ * 	Niclas Finne <nfi@sics.se>
+ */
 
-#include "contiki.h"
-#include "lib/sensors.h"
-#include "dev/sht11.h"
-#include "dev/sht11-sensor.h"
+#ifndef SHT11_ARCH_H
+#define SHT11_ARCH_H
 
-extern const struct sensors_sensor sht11_sensor;
+#define SHT11_ARCH_SDA	1	/* P1.1 */
+#define SHT11_ARCH_SCL	0	/* P1.0 */
+#define SHT11_ARCH_PWR	7	/* P1.7 */
 
-enum {
-  ON, OFF
-};
-static uint8_t state = OFF;
+#define	SHT11_PxDIR	P1DIR
+#define SHT11_PxIN	P1
+#define SHT11_PxOUT	P1
+#define SHT11_PxSEL	P1SEL
 
-/*---------------------------------------------------------------------------*/
-static int
-value(int type)
-{
-  switch(type) {
-    /* Photosynthetically Active Radiation. */
-  case SHT11_SENSOR_TEMP:
-    return sht11_temp();;
+#define SHT11_INIT() 
+#define SHT11_OFF()
 
-    /* Total Solar Radiation. */
-  case SHT11_SENSOR_HUMIDITY:
-    return sht11_humidity();
-
-  case SHT11_SENSOR_BATTERY_INDICATOR:
-    return sht11_sreg() & 0x40? 1: 0;
-}
-  return 0;
-}
-/*---------------------------------------------------------------------------*/
-static int
-status(int type)
-{
-  switch(type) {
-  case SENSORS_ACTIVE:
-  case SENSORS_READY:
-    return (state == ON);
-  }
-  return 0;
-}
-
-/*---------------------------------------------------------------------------*/
-static int
-configure(int type, int c)
-{
-  switch(type) {
-  case SENSORS_ACTIVE:
-    if(c) {
-      if(!status(SENSORS_ACTIVE)) {
-        rtimer_clock_t t0;
-	sht11_init();
-        state = ON;
-
-        /* For for about 11 ms before the SHT11 can be used. */
-        t0 = RTIMER_NOW();
-        while(RTIMER_CLOCK_LT(RTIMER_NOW(), t0 + RTIMER_SECOND / 100));
-      }
-    } else {
-      sht11_off();
-      state = OFF;
-    }
-  }
-  return 0;
-}
-/*---------------------------------------------------------------------------*/
-SENSORS_SENSOR(sht11_sensor, "sht11",
-	       value, configure, status);
+#endif

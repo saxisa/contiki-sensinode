@@ -51,10 +51,9 @@
 
 #include <limits.h>
 #include <string.h>
-
 #define DEBUG DEBUG_NONE
 #include "net/uip-debug.h"
-
+#include "debug.h"
 #include "net/neighbor-info.h"
 
 /*---------------------------------------------------------------------------*/
@@ -299,9 +298,10 @@ set_ip_from_prefix(uip_ipaddr_t *ipaddr, rpl_prefix_t *prefix)
 static void
 check_prefix(rpl_prefix_t *last_prefix, rpl_prefix_t *new_prefix)
 {
-  uip_ipaddr_t ipaddr;
+  static uip_ipaddr_t ipaddr;
   uip_ds6_addr_t *rep;
-
+puthex((uint8_t)&rep);
+  PRINTF("[][]OUr debug At the top of check prefix\n");
   if(last_prefix != NULL && new_prefix != NULL &&
      last_prefix->length == new_prefix->length &&
      uip_ipaddr_prefixcmp(&last_prefix->prefix, &new_prefix->prefix, new_prefix->length) &&
@@ -320,9 +320,11 @@ check_prefix(rpl_prefix_t *last_prefix, rpl_prefix_t *new_prefix)
       uip_ds6_addr_rm(rep);
     }
   }
-  
+ // PRINTF("[][]OUr debug 231414 \n");
+
   if(new_prefix != NULL) {
     set_ip_from_prefix(&ipaddr, new_prefix);
+    PRINTF("[][]Our debug : after set ip prefix\n");
     if(uip_ds6_addr_lookup(&ipaddr) == NULL) {
       PRINTF("RPL: adding global IP address ");
       PRINT6ADDR(&ipaddr);
@@ -330,6 +332,7 @@ check_prefix(rpl_prefix_t *last_prefix, rpl_prefix_t *new_prefix)
       uip_ds6_addr_add(&ipaddr, 0, ADDR_AUTOCONF);
     }
   }
+  PRINTF("[][]Our debug : end of check prefix\n");
 }
 /*---------------------------------------------------------------------------*/
 int
@@ -784,11 +787,12 @@ rpl_find_of(rpl_ocp_t ocp)
 void
 rpl_join_instance(uip_ipaddr_t *from, rpl_dio_t *dio)
 {
+
   rpl_instance_t *instance;
   rpl_dag_t *dag;
   rpl_parent_t *p;
   rpl_of_t *of;
-
+	watchdog_periodic();
   dag = rpl_alloc_dag(dio->instance_id, &dio->dag_id);
   if(dag == NULL) {
     PRINTF("RPL: Failed to allocate a DAG object!\n");
@@ -812,6 +816,8 @@ rpl_join_instance(uip_ipaddr_t *from, rpl_dio_t *dio)
   /* Determine the objective function by using the
      objective code point of the DIO. */
   of = rpl_find_of(dio->ocp);
+
+//PRINTF("[][]our debug: rpl-dag.c: point 0\n");
   if(of == NULL) {
     PRINTF("RPL: DIO for DAG instance %u does not specify a supported OF\n",
         dio->instance_id);
@@ -819,10 +825,11 @@ rpl_join_instance(uip_ipaddr_t *from, rpl_dio_t *dio)
     instance->used = 0;
     return;
   }
-
+//PRINTF("[][]our debug: rpl-dag.c: point 1\n");
   /* Autoconfigure an address if this node does not already have an address
      with this prefix. */
   if(dio->prefix_info.flags & UIP_ND6_RA_FLAG_AUTONOMOUS) {
+//PRINTF("[][]our debug: rpl-dag.c: point 2\n");
     check_prefix(NULL, &dio->prefix_info);
   }
 
@@ -869,12 +876,14 @@ rpl_join_instance(uip_ipaddr_t *from, rpl_dio_t *dio)
 
   rpl_reset_dio_timer(instance);
   rpl_set_default_route(instance, from);
-
+//PRINTF("[][]our debug: rpl-dag.c: point 6\n");
   if(instance->mop != RPL_MOP_NO_DOWNWARD_ROUTES) {
+//PRINTF("[][]our debug: rpl-dag.c: point 7\n");
     rpl_schedule_dao(instance);
   } else {
     PRINTF("RPL: The DIO does not meet the prerequisites for sending a DAO\n");
   }
+//PRINTF("[][]our debug: rpl-dag.c: point 8\n");
 }
 
 /*---------------------------------------------------------------------------*/

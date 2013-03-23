@@ -49,7 +49,7 @@
 
 #include <string.h>
 
-#define DEBUG DEBUG_NONE
+#define DEBUG DEBUG_PRINT
 #include "net/uip-debug.h"
 
 #if UIP_LOGGING
@@ -375,6 +375,7 @@ eventhandler(process_event_t ev, process_data_t data)
   static struct process *p;
 
   switch(ev) {
+PRINTF("Event:%d", ev);
     case PROCESS_EVENT_EXITED:
       /* This is the event we get if a process has exited. We go through
          the TCP/IP tables to see if this process had any open
@@ -596,7 +597,7 @@ tcpip_ipv6_output(void)
       }
 #if TCPIP_CONF_ANNOTATE_TRANSMISSIONS
       if(nexthop != NULL) {
-	printf("#L %u 1; red\n", nexthop->u8[sizeof(uip_ipaddr_t) - 1]);
+	PRINTF("#L %u 1; red\n", nexthop->u8[sizeof(uip_ipaddr_t) - 1]);
       }
 #endif /* TCPIP_CONF_ANNOTATE_TRANSMISSIONS */
     }

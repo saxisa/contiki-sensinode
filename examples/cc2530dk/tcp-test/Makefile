@@ -1,0 +1,14 @@
+DEFINES+=PROJECT_CONF_H=\"project-conf.h\"
+
+HAVE_BANKING=1
+UIP_CONF_IPV6=1
+UIP_CONF_RPL=1
+UIP_CONF_TCP=1
+
+CONTIKI_PROJECT = server
+PROJECT_SOURCEFILES += uip-log.c
+all: $(CONTIKI_PROJECT) 
+
+CONTIKI = ../../..
+
+include $(CONTIKI)/Makefile.include

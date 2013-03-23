@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005, Swedish Institute of Computer Science
+ * Copyright (c) 2010, Loughborough University - Computer Science
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,73 +30,16 @@
  *
  */
 
-#include <stdlib.h>
+/**
+ * \file
+ *         Project specific configuration defines for the UDP client/server
+ *         example.
+ *
+ * \author
+ *         George Oikonomou - <oikonomou@users.sourceforge.net>
+ */
 
-#include "contiki.h"
-#include "lib/sensors.h"
-#include "dev/sht11.h"
-#include "dev/sht11-sensor.h"
+#ifndef PROJECT_CONF_H_
+#define PROJECT_CONF_H_
 
-extern const struct sensors_sensor sht11_sensor;
-
-enum {
-  ON, OFF
-};
-static uint8_t state = OFF;
-
-/*---------------------------------------------------------------------------*/
-static int
-value(int type)
-{
-  switch(type) {
-    /* Photosynthetically Active Radiation. */
-  case SHT11_SENSOR_TEMP:
-    return sht11_temp();;
-
-    /* Total Solar Radiation. */
-  case SHT11_SENSOR_HUMIDITY:
-    return sht11_humidity();
-
-  case SHT11_SENSOR_BATTERY_INDICATOR:
-    return sht11_sreg() & 0x40? 1: 0;
-}
-  return 0;
-}
-/*---------------------------------------------------------------------------*/
-static int
-status(int type)
-{
-  switch(type) {
-  case SENSORS_ACTIVE:
-  case SENSORS_READY:
-    return (state == ON);
-  }
-  return 0;
-}
-
-/*---------------------------------------------------------------------------*/
-static int
-configure(int type, int c)
-{
-  switch(type) {
-  case SENSORS_ACTIVE:
-    if(c) {
-      if(!status(SENSORS_ACTIVE)) {
-        rtimer_clock_t t0;
-	sht11_init();
-        state = ON;
-
-        /* For for about 11 ms before the SHT11 can be used. */
-        t0 = RTIMER_NOW();
-        while(RTIMER_CLOCK_LT(RTIMER_NOW(), t0 + RTIMER_SECOND / 100));
-      }
-    } else {
-      sht11_off();
-      state = OFF;
-    }
-  }
-  return 0;
-}
-/*---------------------------------------------------------------------------*/
-SENSORS_SENSOR(sht11_sensor, "sht11",
-	       value, configure, status);
+#endif /* PROJECT_CONF_H_ */

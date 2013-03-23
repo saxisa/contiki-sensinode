@@ -35,7 +35,7 @@
 #include <string.h>
 
 #include "net/psock.h"
-
+#include <stdio.h>
 #define STATE_NONE 0
 #define STATE_ACKED 1
 #define STATE_READ 2
@@ -143,6 +143,8 @@ data_is_sent_and_acked(CC_REGISTER_ARG struct psock *s)
   /* If data has previously been sent, and the data has been acked, we
      increase the send pointer and call send_data() to send more
      data. */
+printf("[][]psock.c in data_is_sent_and_acked\n");
+printf("[][]uip_mss is %d, sendlen is %d\n", uip_mss(), s->sendlen);
   if(s->state != STATE_DATA_SENT || uip_rexmit()) {
     if(s->sendlen > uip_mss()) {
       uip_send(s->sendptr, uip_mss());
@@ -150,6 +152,7 @@ data_is_sent_and_acked(CC_REGISTER_ARG struct psock *s)
       uip_send(s->sendptr, s->sendlen);
     }
     s->state = STATE_DATA_SENT;
+printf("[][]psock.c data sent return 0\n");
     return 0;
   } else if(s->state == STATE_DATA_SENT && uip_acked()) {
     if(s->sendlen > uip_mss()) {
@@ -160,8 +163,10 @@ data_is_sent_and_acked(CC_REGISTER_ARG struct psock *s)
       s->sendlen = 0;
     }
     s->state = STATE_ACKED;
-    return 1;
+printf("[][]psock.c data acked return 1, send len is %d\n", s->sendlen);
+    return s->sendlen == 0;
   }
+printf("[][]psock.c just return 0\n");
   return 0;
 }
 /*---------------------------------------------------------------------------*/
@@ -169,7 +174,7 @@ PT_THREAD(psock_send(CC_REGISTER_ARG struct psock *s, const uint8_t *buf,
 		     unsigned int len))
 {
   PT_BEGIN(&s->psockpt);
-
+printf("[][]psock.c, in send\n");
   /* If there is no data to send, we exit immediately. */
   if(len == 0) {
     PT_EXIT(&s->psockpt);
@@ -184,15 +189,18 @@ PT_THREAD(psock_send(CC_REGISTER_ARG struct psock *s, const uint8_t *buf,
 
   /* We loop here until all data is sent. The s->sendlen variable is
      updated by the data_sent() function. */
-  while(s->sendlen > 0) {
-
+  if (s->sendlen > 0) {
+printf("[][]psock.c send len is %d\n", s->sendlen);
     /*
      * The protothread will wait here until all data has been
      * acknowledged and sent (data_is_acked_and_send() returns 1).
      */
     PT_WAIT_UNTIL(&s->psockpt, data_is_sent_and_acked(s));
+printf("[][]psock.c send len is %d\n", s->sendlen);
+//OUR COMMENT: weird hack
+//if (s->sendlen == 0) break;
   }
-
+printf("[][]psock.c send while loop over.");
   s->state = STATE_NONE;
   
   PT_END(&s->psockpt);

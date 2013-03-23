@@ -65,7 +65,8 @@
 
 #include "dev/button-sensor.h"
 #include "dev/adc-sensor.h"
-
+#include "dev/sht11-sensor.h"
+#include "dev/tsl2561-sensor.h"
 #define DEBUG 1
 
 #if DEBUG
@@ -117,7 +118,7 @@ PROCESS_THREAD(sensors_test_process, ev, data)
   static float sane = 0;
   static int dec;
   static float frac;
-
+  static unsigned rh;
   PROCESS_BEGIN();
 
   PRINTF("========================\n");
@@ -126,7 +127,7 @@ PROCESS_THREAD(sensors_test_process, ev, data)
 
   /* Set an etimer. We take sensor readings when it expires and reset it. */
   etimer_set(&et, CLOCK_SECOND * 2);
-
+SENSORS_ACTIVATE(tsl2561_sensor);
   while(1) {
 
     PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
@@ -135,10 +136,12 @@ PROCESS_THREAD(sensors_test_process, ev, data)
      * Request some ADC conversions
      * Return value -1 means sensor not available or turned off in conf
      */
-    sensor = sensors_find(ADC_SENSOR);
-    if(sensor) {
+	SENSORS_ACTIVATE(sht11_sensor);
+
+    //sensor = sensors_find(ADC_SENSOR);
+    //if(sensor) {
       PRINTF("------------------\n");
-      leds_on(LEDS_RED);
+      //leds_on(LEDS_RED);
       /*
        * Temperature:
        * Using 1.25V ref. voltage (1250mV).
@@ -152,13 +155,14 @@ PROCESS_THREAD(sensors_test_process, ev, data)
        * T = 25 + ---------
        *              4.5
        */
-      rv = sensor->value(ADC_SENSOR_TYPE_TEMP);
+    /*  rv = sensor->value(ADC_SENSOR_TYPE_TEMP);
       if(rv != -1) {
         sane = 25 + ((rv - 1480) / 4.5);
         dec = sane;
         frac = sane - dec;
         PRINTF("  Temp=%d.%02u C (%d)\n", dec, (unsigned int)(frac*100), rv);
       }
+*/
       /*
        * Power Supply Voltage.
        * Using 1.25V ref. voltage.
@@ -170,6 +174,7 @@ PROCESS_THREAD(sensors_test_process, ev, data)
        * Supply = -------------- V
        *               2047
        */
+/*
       rv = sensor->value(ADC_SENSOR_TYPE_VDD);
       if(rv != -1) {
         sane = rv * 3.75 / 2047;
@@ -177,17 +182,29 @@ PROCESS_THREAD(sensors_test_process, ev, data)
         frac = sane - dec;
         PRINTF("Supply=%d.%02u V (%d)\n", dec, (unsigned int)(frac*100), rv);
         /* Store rv temporarily in dec so we can use it for the battery */
-        dec = rv;
-      }
+  //      dec = rv;
+//      }
+
       /*
        * Battery Voltage - ToDo
        *   rv = sensor->value(ADC_SENSOR_TYPE_BATTERY);
        */
 
-      leds_off(LEDS_RED);
-    }
+//      leds_off(LEDS_RED);
+//    }
+printf("Temperature:   %u degrees Celsius\n",
+	(unsigned) (-39.60 + 0.01 * sht11_sensor.value(SHT11_SENSOR_TEMP)));
+    rh = sht11_sensor.value(SHT11_SENSOR_HUMIDITY);
+    printf("Rel. humidity: %u%%\n",
+	(unsigned) (-4 + 0.0405*rh - 2.8e-6*(rh*rh)));
+
+printf("Illumination: %d lux\n", tsl2561_sensor.value(TSL2561_SENSOR_ILLUMINATION));
+SENSORS_DEACTIVATE(sht11_sensor);
+
     etimer_reset(&et);
   }
+
+SENSORS_DEACTIVATE(tsl2561_sensor);
   PROCESS_END();
 }
 /*---------------------------------------------------------------------------*/

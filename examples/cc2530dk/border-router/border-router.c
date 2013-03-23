@@ -43,7 +43,10 @@
 #include "debug.h"
 
 static uint8_t prefix_set;
-
+static uip_ipaddr_t prefix;
+uint16_t dag_id[] = {0xbbbb, 0, 0, 0, 0, 0, 0, 0x0011};
+extern uip_ds6_nbr_t uip_ds6_nbr_cache[];
+static struct etimer et;
 #if DEBUG
 #define PUTSTRING(...) putstring(__VA_ARGS__)
 #define PUTHEX(...) puthex(__VA_ARGS__)
@@ -59,8 +62,24 @@ static uint8_t prefix_set;
 #endif
 /*---------------------------------------------------------------------------*/
 PROCESS(border_router_process, "Border Router process");
-AUTOSTART_PROCESSES(&border_router_process);
+PROCESS(demon_process, "DXXX");
+AUTOSTART_PROCESSES(&border_router_process, &demon_process);
 /*---------------------------------------------------------------------------*/
+static void
+print_routing_table(void) CC_NON_BANKED
+{
+	uip_ds6_route_t* r;
+  for(r = uip_ds6_route_list_head(); r != NULL; r = list_item_next(r)) {
+		
+			PRINT6ADDR(&r->ipaddr);
+	PUTSTRING("->");
+	PRINT6ADDR(&r->nexthop);
+
+	PUTSTRING("\n");
+	}
+
+}
+
 static void
 print_local_addresses(void) CC_NON_BANKED
 {
@@ -97,7 +116,7 @@ request_prefix(void) CC_NON_BANKED
 void
 set_prefix_64(uip_ipaddr_t *prefix_64)
 {
-  rpl_dag_t *dag;
+  //rpl_dag_t *dag;
   uip_ipaddr_t ipaddr;
   memcpy(&ipaddr, prefix_64, 16);
   prefix_set = 1;
@@ -105,23 +124,23 @@ set_prefix_64(uip_ipaddr_t *prefix_64)
   uip_ds6_addr_add(&ipaddr, 0, ADDR_AUTOCONF);
 
   /* Become root of a new DODAG with ID our global v6 address */
-  dag = rpl_set_root(RPL_DEFAULT_INSTANCE, &ipaddr);
-  if(dag != NULL) {
-    rpl_set_prefix(dag, &ipaddr, 64);
-    PUTSTRING("Created a new RPL dag with ID: ");
-    PRINT6ADDR(&dag->dag_id);
-    PUTCHAR('\n');
-  }
+ // dag = rpl_set_root(RPL_DEFAULT_INSTANCE, &ipaddr);
+ // if(dag != NULL) {
+ //   rpl_set_prefix(dag, &ipaddr, 64);
+ //   PUTSTRING("Created a new RPL dag with ID: ");
+  //  PRINT6ADDR(&dag->dag_id);
+  //  PUTCHAR('\n');
+  //}
 }
 /*---------------------------------------------------------------------------*/
 PROCESS_THREAD(border_router_process, ev, data)
 {
   static struct etimer et;
-
+	rpl_dag_t *dag;
   PROCESS_BEGIN();
   PUTSTRING("Border Router started\n");
   prefix_set = 0;
-
+NETSTACK_MAC.off(0);
   leds_on(LEDS_GREEN);
 
   /* Request prefix until it has been received */
@@ -133,11 +152,18 @@ PROCESS_THREAD(border_router_process, ev, data)
     leds_off(LEDS_RED);
     PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
   }
+
+  dag = rpl_set_root(RPL_DEFAULT_INSTANCE,(uip_ip6addr_t *)dag_id);
+  if(dag != NULL) {
+    rpl_set_prefix(dag, (uip_ip6addr_t *)dag_id, 64);
+    PRINTF("created a new RPL dag\n");
+  }
+
   /* We have created a new DODAG when we reach here */
   PUTSTRING("On Channel ");
   PUTDEC(cc2530_rf_channel_get());
   PUTCHAR('\n');
-
+  NETSTACK_MAC.off(1);
   print_local_addresses();
 
   leds_off(LEDS_GREEN);
@@ -145,5 +171,20 @@ PROCESS_THREAD(border_router_process, ev, data)
   PROCESS_EXIT();
 
   PROCESS_END();
+}
+
+PROCESS_THREAD(demon_process, ev, data)
+{
+	PROCESS_BEGIN();
+	etimer_set(&et, 2*CLOCK_SECOND);
+
+	PROCESS_YIELD();
+	while (1) {
+		PUTSTRING("[][]OUR_DEBUG routing table:");
+		print_routing_table();
+		PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
+		etimer_set(&et, 10*CLOCK_SECOND);
+	}
+	PROCESS_END();
 }
 /*---------------------------------------------------------------------------*/

@@ -24,6 +24,7 @@
 #include "sfr-bits.h"
 #include "contiki-lib.h"
 #include "contiki-net.h"
+
 /*---------------------------------------------------------------------------*/
 #if VIZTOOL_CONF_ON
 PROCESS_NAME(viztool_process);
@@ -58,6 +59,45 @@ static unsigned long irq_energest = 0;
 #define ENERGEST_IRQ_SAVE(a) do {} while(0)
 #define ENERGEST_IRQ_RESTORE(a) do {} while(0)
 #endif
+
+void delay_us(int x) {
+	while (x--) {
+		__asm
+		nop
+		nop
+		nop
+		nop
+		nop
+		nop
+		nop
+		nop
+		nop
+		nop
+		nop
+		nop
+		nop
+		nop
+		nop
+		nop
+		nop
+		nop
+		nop
+		nop
+		nop
+		nop
+		nop
+		nop
+		nop
+		nop
+		nop
+		nop
+		nop
+		nop
+		nop
+		nop
+		__endasm;
+	}
+}
 /*---------------------------------------------------------------------------*/
 static void
 fade(int l) CC_NON_BANKED
