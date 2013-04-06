@@ -9,7 +9,7 @@
 #include "coap-server.h"
 #include "rest-util.h"
 #include "rest.h" /*added for periodic_resource*/
-
+#include "debug.h"
 #include "dev/leds.h"
 
 #if !UIP_CONF_IPV6_RPL && !defined (CONTIKI_TARGET_MINIMAL_NET)
@@ -48,6 +48,8 @@ parse_message(coap_packet_t* packet, uint8_t* buf, uint8_t size)
 {
   uint8_t processed = 0;
   uint8_t i = 0;
+
+  putchar('b');
   PRINTF("parse_message size %d-->\n",size);
 
   init_packet(packet);
@@ -66,7 +68,7 @@ parse_message(coap_packet_t* packet, uint8_t* buf, uint8_t size)
     uint8_t option_len;
     uint8_t* option_buf = buf + processed;
     packet->options = (header_option_t*)allocate_buffer(sizeof(header_option_t) * packet->option_count);
-
+    putchar('c');
     if (packet->options) {
       header_option_t* current_option = packet->options;
       header_option_t* prev_option = NULL;
@@ -111,7 +113,7 @@ parse_message(coap_packet_t* packet, uint8_t* buf, uint8_t size)
     }
   }
   processed += i;
-
+  putchar('d');
   /**/
   if (processed < size) {
     packet->payload = &buf[processed];
@@ -134,6 +136,7 @@ parse_message(coap_packet_t* packet, uint8_t* buf, uint8_t size)
   }
 
   PRINTF("PACKET ver:%d type:%d oc:%d \ncode:%d tid:%u url:%s len:%u payload:%s pay_len %u\n", (int)packet->ver, (int)packet->type, (int)packet->option_count, (int)packet->code, packet->tid, packet->url, packet->url_len, packet->payload, packet->payload_len);
+  putchar('e');
 }
 
 int
@@ -157,7 +160,7 @@ coap_get_post_variable(coap_packet_t* packet, const char *name, char* output, ui
 }
 
 static header_option_t*
-allocate_header_option(uint16_t variable_len)
+allocate_header_option(uint8_t variable_len)
 {
 
   uint8_t* buffer = allocate_buffer(sizeof(header_option_t) + variable_len);
@@ -242,7 +245,7 @@ coap_get_option(coap_packet_t* packet, option_type option_type)
 }
 
 static void
-fill_error_packet(coap_packet_t* packet, int error, uint16_t tid)
+fill_error_packet(coap_packet_t* packet, uint8_t error, uint16_t tid)
 {
   packet->ver=1;
   packet->option_count=0;
@@ -438,7 +441,7 @@ handle_incoming_data(void)
     PRINTF("\n");
 
     if (init_buffer(COAP_DATA_BUFF_SIZE)) {
-      coap_packet_t* request = (coap_packet_t*)allocate_buffer(sizeof(coap_packet_t));
+      static coap_packet_t* request = (coap_packet_t*)allocate_buffer(sizeof(coap_packet_t));
       parse_message(request, (uint8_t*)data, datalen);
 
       uip_ipaddr_copy(&request->addr, &UIP_IP_BUF->srcipaddr);
@@ -455,12 +458,13 @@ handle_incoming_data(void)
 
       }
       delete_buffer();
+      putchar('f');
     } else {
       static coap_packet_t error_packet;
       PRINTF("Memory Alloc Error\n");
       error = MEMORY_ALLOC_ERR;
       /*FIXME : Crappy way of accessing TID of the incoming packet, fix it!*/
-      fill_error_packet(&error_packet,error, (data[2] << 8) + data[3]);
+      fill_error_packet(&error_packet, error, (data[2] << 8) + data[3]);
       data_size = serialize_packet(&error_packet, stbuf);
     }
 
@@ -472,6 +476,7 @@ handle_incoming_data(void)
     /* Restore server connection to allow data from any node */
     memset(&server_conn->ripaddr, 0, sizeof(server_conn->ripaddr));
     server_conn->rport = 0;
+    putchar('g');
   }
 
   return error;
@@ -513,6 +518,7 @@ PROCESS_THREAD(coap_server, ev, data)
     PROCESS_YIELD();
 
     if(ev == tcpip_event) {
+	putchar('a');
       handle_incoming_data();
     } else if (ev == resource_changed_event) {
       periodic_resource_t* resource = (periodic_resource_t*)data;

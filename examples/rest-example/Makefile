@@ -1,8 +1,5 @@
 all: rest-server-example coap-client-example
 
-ifndef TARGET
-TARGET=sky
-endif
 HAVE_BANKING=1
 CONTIKI=../..
 
