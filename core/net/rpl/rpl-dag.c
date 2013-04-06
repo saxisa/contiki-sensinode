@@ -300,7 +300,6 @@ check_prefix(rpl_prefix_t *last_prefix, rpl_prefix_t *new_prefix)
 {
   static uip_ipaddr_t ipaddr;
   uip_ds6_addr_t *rep;
-puthex((uint8_t)&rep);
   PRINTF("[][]OUr debug At the top of check prefix\n");
   if(last_prefix != NULL && new_prefix != NULL &&
      last_prefix->length == new_prefix->length &&

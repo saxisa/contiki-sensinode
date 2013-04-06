@@ -214,7 +214,7 @@
 #define UIP_CONF_ROUTER                      1
 #endif
 
-#define UIP_CONF_LOGGING		 1
+#define UIP_CONF_LOGGING		 0
 
 /* Prevent SDCC compile error when UIP_CONF_ROUTER == 0 */
 #if !UIP_CONF_ROUTER

@@ -159,8 +159,9 @@ coap_get_post_variable(coap_packet_t* packet, const char *name, char* output, ui
 static header_option_t*
 allocate_header_option(uint16_t variable_len)
 {
-  PRINTF("sizeof header_option_t %u variable size %u\n", sizeof(header_option_t), variable_len);
+
   uint8_t* buffer = allocate_buffer(sizeof(header_option_t) + variable_len);
+  PRINTF("sizeof header_option_t %u variable size %u\n", sizeof(header_option_t), variable_len);
   if (buffer){
     header_option_t* option = (header_option_t*) buffer;
     option->next = NULL;
@@ -176,15 +177,18 @@ allocate_header_option(uint16_t variable_len)
 int
 coap_set_option(coap_packet_t* packet, option_type option_type, uint16_t len, uint8_t* value)
 {
-  PRINTF("coap_set_option len %u\n", len);
+  int i;
   header_option_t* option = allocate_header_option(len);
+  PRINTF("coap_set_option len %u\n", len);
   if (option){
+    header_option_t* option_current;
+    header_option_t* prev;
     option->next = NULL;
     option->len = len;
     option->option = option_type;
     memcpy(option->value, value, len);
-    header_option_t* option_current = packet->options;
-    header_option_t* prev = NULL;
+    option_current = packet->options;
+    prev = NULL;
     while (option_current){
       if (option_current->option > option->option){
         break;
@@ -207,8 +211,7 @@ coap_set_option(coap_packet_t* packet, option_type option_type, uint16_t len, ui
 
     PRINTF("option->len %u option->option %u option->value %x next %x\n", option->len, option->option, (unsigned int) option->value, (unsigned int)option->next);
 
-    int i = 0;
-    for ( ; i < option->len ; i++ ){
+    for (i = 0 ; i < option->len ; i++ ){
       PRINTF(" (%u)", option->value[i]);
     }
     PRINTF("\n");
@@ -222,10 +225,12 @@ coap_set_option(coap_packet_t* packet, option_type option_type, uint16_t len, ui
 header_option_t*
 coap_get_option(coap_packet_t* packet, option_type option_type)
 {
-  PRINTF("coap_get_option count: %u--> \n", packet->option_count);
   int i = 0;
-
   header_option_t* current_option = packet->options;
+  PRINTF("coap_get_option count: %u--> \n", packet->option_count);
+
+
+
   for (; i < packet->option_count; current_option = current_option->next, i++) {
     PRINTF("Current option: %u\n", current_option->option);
     if (current_option->option == option_type){
@@ -311,8 +316,9 @@ coap_get_header_content_type(coap_packet_t* packet)
 int
 coap_get_header_subscription_lifetime(coap_packet_t* packet, uint32_t* lifetime)
 {
-  PRINTF("coap_get_header_subscription_lifetime --> \n");
+
   header_option_t* option = coap_get_option(packet, Option_Type_Subscription_Lifetime);
+  PRINTF("coap_get_header_subscription_lifetime --> \n");
   if (option){
     PRINTF("Subs Found len %u (first byte %u)\n", option->len, (uint16_t)option->value[0]);
 
@@ -336,8 +342,10 @@ int
 coap_get_header_block(coap_packet_t* packet, block_option_t* block)
 {
   uint32_t all_block;
-  PRINTF("coap_get_header_block --> \n");
+
   header_option_t* option = coap_get_option(packet, Option_Type_Block);
+  PRINTF("coap_get_header_block --> \n");
+
   if (option){
     PRINTF("Block Found len %u (first byte %u)\n", option->len, (uint16_t)option->value[0]);
 
@@ -355,12 +363,13 @@ int
 coap_set_header_block(coap_packet_t* packet, uint32_t number, uint8_t more, uint8_t size)
 {
   uint8_t temp[4];
+uint16_t len;
   size = log_2(size/16);
   number = number << 4;
   number |= (more << 3) & 0x8;
   number |= size & 0x7;
 
-  uint16_t len = write_variable_int(temp, number);
+  len = write_variable_int(temp, number);
   PRINTF("number %lu, more %u, size %u block[0] %u block[1] %u block[2] %u block[3] %u\n",
       number, (uint16_t)more, (uint16_t)size, (uint16_t)temp[0], (uint16_t)temp[1], (uint16_t)temp[2], (uint16_t)temp[3]);
   return coap_set_option(packet, Option_Type_Block, len, temp);
@@ -397,12 +406,12 @@ coap_set_method(coap_packet_t* packet, coap_method_t method)
   packet->code = (uint8_t)method;
 }
 
+static char stbuf[MAX_PAYLOAD_LEN];
 static void send_request(coap_packet_t* request, struct uip_udp_conn *client_conn)
 {
-  char buf[MAX_PAYLOAD_LEN];
   int data_size = 0;
 
-  data_size = serialize_packet(request, buf);
+  data_size = serialize_packet(request, stbuf);
 
   PRINTF("Created a connection with the server ");
   PRINT6ADDR(&client_conn->ripaddr);
@@ -411,22 +420,19 @@ static void send_request(coap_packet_t* request, struct uip_udp_conn *client_con
 
   PRINTF("Sending to: ");
   PRINT6ADDR(&client_conn->ripaddr);
-  uip_udp_packet_send(client_conn, buf, data_size);
+  uip_udp_packet_send(client_conn, stbuf, data_size);
 }
 
 static int
 handle_incoming_data(void)
 {
   int error=NO_ERROR;
-  char buf[MAX_PAYLOAD_LEN];
-
-  PRINTF("uip_datalen received %u \n",(uint16_t)uip_datalen());
 
   char* data = (char *)uip_appdata + uip_ext_len;
   uint16_t datalen = uip_datalen() - uip_ext_len;
 
   int data_size = 0;
-
+  PRINTF("uip_datalen received %u \n",(uint16_t)uip_datalen());
   if (uip_newdata()) {
     ((char *)data)[datalen] = 0;
     PRINTF("Server received: '%s' (port:%u) from ", (char *)data, uip_htons(UIP_UDP_BUF->srcport));
@@ -447,24 +453,24 @@ handle_incoming_data(void)
           service_cbk(request, response);
         }
 
-        data_size = serialize_packet(response, buf);
+        data_size = serialize_packet(response, stbuf);
 
       }
       delete_buffer();
     } else {
+      coap_packet_t error_packet;
       PRINTF("Memory Alloc Error\n");
       error = MEMORY_ALLOC_ERR;
       /*FIXME : Crappy way of accessing TID of the incoming packet, fix it!*/
-      coap_packet_t error_packet;
       fill_error_packet(&error_packet,error, (data[2] << 8) + data[3]);
-      data_size = serialize_packet(&error_packet, buf);
+      data_size = serialize_packet(&error_packet, stbuf);
     }
 
     uip_ipaddr_copy(&server_conn->ripaddr, &UIP_IP_BUF->srcipaddr);
     server_conn->rport = UIP_UDP_BUF->srcport;
 
     PRINTF("Responding with message size: %d\n",data_size);
-    uip_udp_packet_send(server_conn, buf, data_size);
+    uip_udp_packet_send(server_conn, stbuf, data_size);
     /* Restore server connection to allow data from any node */
     memset(&server_conn->ripaddr, 0, sizeof(server_conn->ripaddr));
     server_conn->rport = 0;

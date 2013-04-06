@@ -44,7 +44,7 @@
 
 static uint8_t prefix_set;
 static uip_ipaddr_t prefix;
-uint16_t dag_id[] = {0xbbbb, 0, 0, 0, 0, 0, 0, 0x0011};
+//uint16_t dag_id[] = {0xbbbb, 0, 0, 0, 0, 0, 0, 0x0011};
 extern uip_ds6_nbr_t uip_ds6_nbr_cache[];
 static struct etimer et;
 #if DEBUG
@@ -116,7 +116,7 @@ request_prefix(void) CC_NON_BANKED
 void
 set_prefix_64(uip_ipaddr_t *prefix_64)
 {
-  //rpl_dag_t *dag;
+  rpl_dag_t *dag;
   uip_ipaddr_t ipaddr;
   memcpy(&ipaddr, prefix_64, 16);
   prefix_set = 1;
@@ -124,13 +124,13 @@ set_prefix_64(uip_ipaddr_t *prefix_64)
   uip_ds6_addr_add(&ipaddr, 0, ADDR_AUTOCONF);
 
   /* Become root of a new DODAG with ID our global v6 address */
- // dag = rpl_set_root(RPL_DEFAULT_INSTANCE, &ipaddr);
- // if(dag != NULL) {
- //   rpl_set_prefix(dag, &ipaddr, 64);
- //   PUTSTRING("Created a new RPL dag with ID: ");
-  //  PRINT6ADDR(&dag->dag_id);
-  //  PUTCHAR('\n');
-  //}
+  dag = rpl_set_root(RPL_DEFAULT_INSTANCE, &ipaddr);
+  if(dag != NULL) {
+    rpl_set_prefix(dag, &ipaddr, 64);
+    PUTSTRING("Created a new RPL dag with ID: ");
+    PRINT6ADDR(&dag->dag_id);
+    PUTCHAR('\n');
+  }
 }
 /*---------------------------------------------------------------------------*/
 PROCESS_THREAD(border_router_process, ev, data)
@@ -153,11 +153,11 @@ NETSTACK_MAC.off(0);
     PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
   }
 
-  dag = rpl_set_root(RPL_DEFAULT_INSTANCE,(uip_ip6addr_t *)dag_id);
-  if(dag != NULL) {
-    rpl_set_prefix(dag, (uip_ip6addr_t *)dag_id, 64);
-    PRINTF("created a new RPL dag\n");
-  }
+ // dag = rpl_set_root(RPL_DEFAULT_INSTANCE,(uip_ip6addr_t *)dag_id);
+ // if(dag != NULL) {
+ //   rpl_set_prefix(dag, (uip_ip6addr_t *)dag_id, 64);
+ //   PRINTF("created a new RPL dag\n");
+ // }
 
   /* We have created a new DODAG when we reach here */
   PUTSTRING("On Channel ");

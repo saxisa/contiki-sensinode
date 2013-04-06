@@ -82,7 +82,7 @@
 /* For Debug, logging, statistics                                            */
 /*---------------------------------------------------------------------------*/
 
-#define DEBUG DEBUG_PRINT
+#define DEBUG DEBUG_NONE
 #include "net/uip-debug.h"
 
 #if UIP_CONF_IPV6_RPL
@@ -906,7 +906,7 @@ uip_process(uint8_t flag)
 #if UIP_TCP
   register struct uip_conn *uip_connr = uip_conn;
 #endif /* UIP_TCP */
-printf("[][]flag is %d\n", flag);
+PRINTF("[][]flag is %d\n", flag);
 #if UIP_UDP
   if(flag == UIP_UDP_SEND_CONN) {
     goto udp_send;

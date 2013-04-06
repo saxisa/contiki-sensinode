@@ -78,36 +78,7 @@
 #endif /* DEBUG */
 /*---------------------------------------------------------------------------*/
 PROCESS(sensors_test_process, "Sensor Test Process");
-#if BUTTON_SENSOR_ON
-PROCESS(buttons_test_process, "Button Test Process");
-AUTOSTART_PROCESSES(&sensors_test_process, &buttons_test_process);
-#else
 AUTOSTART_PROCESSES(&sensors_test_process);
-#endif
-/*---------------------------------------------------------------------------*/
-#if BUTTON_SENSOR_ON
-PROCESS_THREAD(buttons_test_process, ev, data)
-{
-  struct sensors_sensor *sensor;
-
-  PROCESS_BEGIN();
-
-  while(1) {
-
-    PROCESS_WAIT_EVENT_UNTIL(ev == sensors_event);
-
-    /* If we woke up after a sensor event, inform what happened */
-    sensor = (struct sensors_sensor *)data;
-    if(sensor == &button_sensor) {
-      PRINTF("Button Press\n");
-      leds_toggle(LEDS_GREEN);
-    }
-  }
-
-  PROCESS_END();
-}
-#endif
-/*---------------------------------------------------------------------------*/
 PROCESS_THREAD(sensors_test_process, ev, data)
 {
   static struct etimer et;
@@ -127,7 +98,9 @@ PROCESS_THREAD(sensors_test_process, ev, data)
 
   /* Set an etimer. We take sensor readings when it expires and reset it. */
   etimer_set(&et, CLOCK_SECOND * 2);
-SENSORS_ACTIVATE(tsl2561_sensor);
+  SENSORS_ACTIVATE(tsl2561_sensor);
+  SENSORS_ACTIVATE(sht11_sensor);
+  SENSORS_ACTIVATE(adc_sensor);
   while(1) {
 
     PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
@@ -136,7 +109,7 @@ SENSORS_ACTIVATE(tsl2561_sensor);
      * Request some ADC conversions
      * Return value -1 means sensor not available or turned off in conf
      */
-	SENSORS_ACTIVATE(sht11_sensor);
+
 
     //sensor = sensors_find(ADC_SENSOR);
     //if(sensor) {
@@ -155,14 +128,13 @@ SENSORS_ACTIVATE(tsl2561_sensor);
        * T = 25 + ---------
        *              4.5
        */
-    /*  rv = sensor->value(ADC_SENSOR_TYPE_TEMP);
+      rv = adc_sensor.value(ADC_SENSOR_TYPE_TEMP);
       if(rv != -1) {
         sane = 25 + ((rv - 1480) / 4.5);
         dec = sane;
         frac = sane - dec;
-        PRINTF("  Temp=%d.%02u C (%d)\n", dec, (unsigned int)(frac*100), rv);
+        printf("ADC-Temp=%d.%02u C (%d)\n", dec, (unsigned int)(frac*100), rv);
       }
-*/
       /*
        * Power Supply Voltage.
        * Using 1.25V ref. voltage.
@@ -174,16 +146,15 @@ SENSORS_ACTIVATE(tsl2561_sensor);
        * Supply = -------------- V
        *               2047
        */
-/*
-      rv = sensor->value(ADC_SENSOR_TYPE_VDD);
+      rv = adc_sensor.value(ADC_SENSOR_TYPE_VDD);
       if(rv != -1) {
         sane = rv * 3.75 / 2047;
         dec = sane;
         frac = sane - dec;
-        PRINTF("Supply=%d.%02u V (%d)\n", dec, (unsigned int)(frac*100), rv);
+        printf("ADC-Supply=%d.%02u V (%d)\n", dec, (unsigned int)(frac*100), rv);
         /* Store rv temporarily in dec so we can use it for the battery */
-  //      dec = rv;
-//      }
+        dec = rv;
+      }
 
       /*
        * Battery Voltage - ToDo
@@ -192,19 +163,18 @@ SENSORS_ACTIVATE(tsl2561_sensor);
 
 //      leds_off(LEDS_RED);
 //    }
-printf("Temperature:   %u degrees Celsius\n",
-	(unsigned) (-39.60 + 0.01 * sht11_sensor.value(SHT11_SENSOR_TEMP)));
+	printf("SHT11-Temperature:   %u degrees Celsius\n",
+		(unsigned) (-39.60 + 0.01 * sht11_sensor.value(SHT11_SENSOR_TEMP)));
     rh = sht11_sensor.value(SHT11_SENSOR_HUMIDITY);
-    printf("Rel. humidity: %u%%\n",
-	(unsigned) (-4 + 0.0405*rh - 2.8e-6*(rh*rh)));
+    printf("SHT11-Rel. humidity: %u%%\n",
+		(unsigned) (-4 + 0.0405*rh - 2.8e-6*(rh*rh)));
 
-printf("Illumination: %d lux\n", tsl2561_sensor.value(TSL2561_SENSOR_ILLUMINATION));
-SENSORS_DEACTIVATE(sht11_sensor);
-
+    printf("TSL2561-Illumination: %d lux\n", tsl2561_sensor.value(TSL2561_SENSOR_ILLUMINATION));
     etimer_reset(&et);
   }
-
+SENSORS_DEACTIVATE(sht11_sensor);
 SENSORS_DEACTIVATE(tsl2561_sensor);
+SENSORS_DEACTIVATE(adc_sensor);
   PROCESS_END();
 }
 /*---------------------------------------------------------------------------*/

@@ -47,7 +47,7 @@ static struct psock ps;
  * We must have somewhere to put incoming data, and we use a 50 byte
  * buffer for this purpose.
  */
-static uint8_t buffer[50];
+static uint8_t buffer[120];
 
 /*---------------------------------------------------------------------------*/
 /*
@@ -75,8 +75,8 @@ PRINTF("[!!][!!]server.c after begin\n");
    * using the PSOCK_SEND_STR() function that sends a null-terminated
    * string.
    */
-  PSOCK_SEND_STR(p, "Welcome, please type something and press return.\n");
-PRINTF("[!!][!!]Our Debug: server.c after welcome");
+ // PSOCK_SEND_STR(p, "Welcome, please type something and press return.\n");
+//PRINTF("[!!][!!]Our Debug: server.c after welcome");
   /*
    * Next, we use the PSOCK_READTO() function to read incoming data
    * from the TCP connection until we get a newline character. The
@@ -87,23 +87,24 @@ PRINTF("[!!][!!]Our Debug: server.c after welcome");
    * is discarded.
    */
   PSOCK_READTO(p, '\n');
-  	PRINTF("[!!][!!]Our Debug: server.c get content %d, %d, length:%d\n", buffer[0], buffer[1], PSOCK_DATALEN(p));
+  	PRINTF("[!!][!!]Our Debug: server.c get content length:%d, %s\n", PSOCK_DATALEN(p), buffer);
   /*
    * And we send back the contents of the buffer. The PSOCK_DATALEN()
    * function provides us with the length of the data that we've
    * received. Note that this length will not be longer than the input
    * buffer we're using.
    */
-  PSOCK_SEND_STR(p, "Got the following data: ");
-  PSOCK_SEND(p, buffer, PSOCK_DATALEN(p));
+if (strncmp(buffer, "GET / ", 6) == 0) {
+	  PSOCK_SEND_STR(p, "HTTP/1.1 200 OK\nContent-Type:text/html\nContent-Length:109\n\n");
+	  //PSOCK_SEND(p, buffer, PSOCK_DATALEN(p));
 
-  PSOCK_SEND_STR(p, "Good bye!\r\n");
-
+	  PSOCK_SEND_STR(p, "<frameset cols=\"*\"><frame src=\"http://fanyi.youdao.com/translate?i=this%20is%20sensor%20speaking\"></frameset>");
+}
   /*
    * We close the protosocket.
    */
   PSOCK_CLOSE(p);
-
+PRINTF("[!!][!!]Our Debug: server.c close socket\n");
   /*
    * And end the protosocket's protothread.
    */
@@ -131,8 +132,9 @@ PROCESS_THREAD(example_psock_server_process, ev, data)
    * using the HTONS() macro to convert the port number (12345) to
    * network byte order as required by the tcp_listen() function.
    */
-  tcp_listen(UIP_HTONS(3000));
-putstring("Listen port: 3000\n");
+  tcp_listen(UIP_HTONS(80));
+  putstring("Listen port: 80\n");
+
   /*
    * We loop for ever, accepting new connections.
    */
@@ -167,8 +169,7 @@ putstring("[!!][!!]Our Debug: server.c in while loop\n");
          * always need to wait for events inside a process, to let
          * other processes run while we are waiting.
          */
-        PROCESS_WAIT_EVENT_UNTIL(ev == tcpip_event);
-	putstring("[!!][!!]Our Debug: server.c tcpip_event\n");
+
         /*
          * Here is where the real work is taking place: we call the
          * handle_connection() protothread that we defined above. This
@@ -176,6 +177,8 @@ putstring("[!!][!!]Our Debug: server.c in while loop\n");
          * we want it to.
          */
         handle_connection(&ps);
+        PROCESS_WAIT_EVENT_UNTIL(ev == tcpip_event);
+	putstring("[!!][!!]Our Debug: server.c tcpip_event\n");
       }
     }
   }
