@@ -12,7 +12,7 @@ PROCESS_NAME(coap_server);
 #define MOTE_SERVER_LISTEN_PORT 61616
 #define MOTE_CLIENT_LISTEN_PORT 61617
 
-void parse_message(coap_packet_t* packet, uint8_t* buf, uint16_t size);
+void parse_message(coap_packet_t* packet, uint8_t* buf, uint8_t size);
 
 uint16_t coap_get_payload(coap_packet_t* packet, uint8_t** payload);
 int coap_set_payload(coap_packet_t* packet, uint8_t* payload, uint16_t size);
@@ -38,7 +38,7 @@ int coap_get_query_variable(coap_packet_t* packet, const char *name, char* outpu
 int coap_get_post_variable(coap_packet_t* packet, const char *name, char* output, uint16_t output_size);
 
 header_option_t* coap_get_option(coap_packet_t* packet, option_type option_type);
-int coap_set_option(coap_packet_t* packet, option_type option_type, uint16_t len, uint8_t* value);
+int coap_set_option(coap_packet_t* packet, option_type option_type, uint8_t len, uint8_t* value);
 
 /*Type definition of the service callback*/
 typedef int (*service_callback) (coap_packet_t* request, coap_packet_t* response);
