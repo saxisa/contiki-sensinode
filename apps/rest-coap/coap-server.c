@@ -44,10 +44,10 @@ coap_set_service_callback(service_callback callback)
 }
 
 void
-parse_message(coap_packet_t* packet, uint8_t* buf, uint16_t size)
+parse_message(coap_packet_t* packet, uint8_t* buf, uint8_t size)
 {
-  int processed = 0;
-  int i = 0;
+  uint8_t processed = 0;
+  uint8_t i = 0;
   PRINTF("parse_message size %d-->\n",size);
 
   init_packet(packet);
@@ -61,9 +61,9 @@ parse_message(coap_packet_t* packet, uint8_t* buf, uint16_t size)
   processed += 4;
 
   if (packet->option_count) {
-    int option_index = 0;
+    uint8_t option_index = 0;
     uint8_t option_delta;
-    uint16_t option_len;
+    uint8_t option_len;
     uint8_t* option_buf = buf + processed;
     packet->options = (header_option_t*)allocate_buffer(sizeof(header_option_t) * packet->option_count);
 
@@ -123,7 +123,7 @@ parse_message(coap_packet_t* packet, uint8_t* buf, uint16_t size)
   /*If query is not already provided via Uri_Query option then check URL*/
   if (packet->url && !packet->query) {
     if ((packet->query = strchr(packet->url, '?'))) {
-      uint16_t total_url_len = packet->url_len;
+      uint8_t total_url_len = packet->url_len;
       /*set query len and update url len so that it does not include query part now*/
       packet->url_len = packet->query - packet->url;
       packet->query++;
@@ -175,9 +175,9 @@ allocate_header_option(uint16_t variable_len)
 
 /*FIXME : does not overwrite the same option yet.*/
 int
-coap_set_option(coap_packet_t* packet, option_type option_type, uint16_t len, uint8_t* value)
+coap_set_option(coap_packet_t* packet, option_type option_type, uint8_t len, uint8_t* value)
 {
-  int i;
+  uint8_t i;
   header_option_t* option = allocate_header_option(len);
   PRINTF("coap_set_option len %u\n", len);
   if (option){
@@ -225,7 +225,7 @@ coap_set_option(coap_packet_t* packet, option_type option_type, uint16_t len, ui
 header_option_t*
 coap_get_option(coap_packet_t* packet, option_type option_type)
 {
-  int i = 0;
+  uint8_t i = 0;
   header_option_t* current_option = packet->options;
   PRINTF("coap_get_option count: %u--> \n", packet->option_count);
 
@@ -297,9 +297,7 @@ coap_set_payload(coap_packet_t* packet, uint8_t* payload, uint16_t size)
 int
 coap_set_header_content_type(coap_packet_t* packet, content_type_t content_type)
 {
-  uint16_t len = 1;
-
-  return coap_set_option(packet, Option_Type_Content_Type, len, (uint8_t*) &content_type);
+  return coap_set_option(packet, Option_Type_Content_Type, 1, (uint8_t*) &content_type);
 }
 
 content_type_t
@@ -332,8 +330,8 @@ coap_get_header_subscription_lifetime(coap_packet_t* packet, uint32_t* lifetime)
 int
 coap_set_header_subscription_lifetime(coap_packet_t* packet, uint32_t lifetime)
 {
-  uint8_t temp[4];
-  uint16_t len = write_variable_int(temp, lifetime);
+  static uint8_t temp[4];
+  uint8_t len = write_variable_int(temp, lifetime);
 
   return coap_set_option(packet, Option_Type_Subscription_Lifetime, len, temp);
 }
@@ -362,8 +360,8 @@ coap_get_header_block(coap_packet_t* packet, block_option_t* block)
 int
 coap_set_header_block(coap_packet_t* packet, uint32_t number, uint8_t more, uint8_t size)
 {
-  uint8_t temp[4];
-uint16_t len;
+  static uint8_t temp[4];
+  uint8_t len;
   size = log_2(size/16);
   number = number << 4;
   number |= (more << 3) & 0x8;
@@ -409,7 +407,7 @@ coap_set_method(coap_packet_t* packet, coap_method_t method)
 static char stbuf[MAX_PAYLOAD_LEN];
 static void send_request(coap_packet_t* request, struct uip_udp_conn *client_conn)
 {
-  int data_size = 0;
+  uint8_t data_size = 0;
 
   data_size = serialize_packet(request, stbuf);
 
@@ -426,12 +424,12 @@ static void send_request(coap_packet_t* request, struct uip_udp_conn *client_con
 static int
 handle_incoming_data(void)
 {
-  int error=NO_ERROR;
+  uint8_t error = NO_ERROR;
 
   char* data = (char *)uip_appdata + uip_ext_len;
-  uint16_t datalen = uip_datalen() - uip_ext_len;
-
-  int data_size = 0;
+  uint8_t datalen = (uint8_t)(uip_datalen() - uip_ext_len);
+  uint8_t data_size = 0;
+  
   PRINTF("uip_datalen received %u \n",(uint16_t)uip_datalen());
   if (uip_newdata()) {
     ((char *)data)[datalen] = 0;
@@ -453,12 +451,12 @@ handle_incoming_data(void)
           service_cbk(request, response);
         }
 
-        data_size = serialize_packet(response, stbuf);
+        data_size = (uint8_t)serialize_packet(response, stbuf);
 
       }
       delete_buffer();
     } else {
-      coap_packet_t error_packet;
+      static coap_packet_t error_packet;
       PRINTF("Memory Alloc Error\n");
       error = MEMORY_ALLOC_ERR;
       /*FIXME : Crappy way of accessing TID of the incoming packet, fix it!*/
