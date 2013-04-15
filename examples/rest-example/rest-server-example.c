@@ -51,7 +51,6 @@ RESOURCE(discover, METHOD_GET, ".well-known/core");
 void
 discover_handler(REQUEST* request, RESPONSE* response)
 {
-  char temp[100];
   int index = 0;
   index += sprintf(temp + index, "%s,", "</helloworld>;n=\"HelloWorld\"");
 #if defined (PLATFORM_HAS_LEDS)

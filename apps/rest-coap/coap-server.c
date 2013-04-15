@@ -183,6 +183,10 @@ coap_set_option(coap_packet_t* packet, option_type option_type, uint8_t len, uin
   uint8_t i;
   header_option_t* option = allocate_header_option(len);
   PRINTF("coap_set_option len %u\n", len);
+  putchar('x');
+  putdec(option_type);
+
+
   if (option){
     header_option_t* option_current;
     header_option_t* prev;
@@ -190,6 +194,7 @@ coap_set_option(coap_packet_t* packet, option_type option_type, uint8_t len, uin
     option->len = len;
     option->option = option_type;
     memcpy(option->value, value, len);
+
     option_current = packet->options;
     prev = NULL;
     while (option_current){
@@ -218,7 +223,9 @@ coap_set_option(coap_packet_t* packet, option_type option_type, uint8_t len, uin
       PRINTF(" (%u)", option->value[i]);
     }
     PRINTF("\n");
-
+    putdec(option->value[0]);
+    putchar(':');
+    putdec(option->len);
     return 1;
   }
 

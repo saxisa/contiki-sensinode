@@ -1,39 +1,10 @@
-/*
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
- * 3. Neither the name of the Institute nor the names of its contributors
- *    may be used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE INSTITUTE AND CONTRIBUTORS ``AS IS'' AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED.  IN NO EVENT SHALL THE INSTITUTE OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE.
- *
- * This file is part of the Contiki operating system.
- *
- */
-
 #include "contiki.h"
 #include "contiki-lib.h"
 #include "contiki-net.h"
 
 #include <string.h>
 #include <stdlib.h>
-#define DEBUG DEBUG_PRINT
+#define DEBUG DEBUG_NONE
 #include "net/uip-debug.h"
 #include "dev/watchdog.h"
 #include "dev/leds.h"
@@ -43,6 +14,8 @@
 #include "dev/sht11-sensor.h"
 #include "dev/tsl2561-sensor.h"
 #include "debug.h"
+
+#define SPRINT6ADDRHALF(buf, addr) sprintf(buf, "%02x%02x:%02x%02x:%02x%02x:%02x%02x:", ((uint8_t *)addr)[0], ((uint8_t *)addr)[1], ((uint8_t *)addr)[2], ((uint8_t *)addr)[3], ((uint8_t *)addr)[4], ((uint8_t *)addr)[5], ((uint8_t *)addr)[6], ((uint8_t *)addr)[7])
 
 #define UIP_IP_BUF   ((struct uip_ip_hdr *)&uip_buf[UIP_LLH_LEN])
 #define UIP_UDP_BUF  ((struct uip_udp_hdr *)&uip_buf[uip_l2_l3_hdr_len])
@@ -60,6 +33,7 @@ static struct etimer et;
 #define SERVER_REPLY          1
 
 static uip_ipaddr_t ipaddr;
+static int listenerport;
 static struct psock ps;
 static struct uip_udp_conn *g_conn;
 
@@ -68,60 +42,59 @@ PROCESS(udp_server_process, "Sensor server process");
 PROCESS(udp_client_process, "Sensor client process");
 PROCESS(example_psock_server_process, "HTTP server");
 AUTOSTART_PROCESSES(&udp_server_process, &udp_client_process,&example_psock_server_process);
+
+static uint8_t
+sprint_local_addresses(void)
+{
+  uint8_t i;
+  uint8_t state;
+
+  PRINTF("Server IPv6 addresses:\n");
+  for(i = 0; i < UIP_DS6_ADDR_NB; i++) {
+    state = uip_ds6_if.addr_list[i].state;
+    if(uip_ds6_if.addr_list[i].isused && (state == ADDR_TENTATIVE || state
+        == ADDR_PREFERRED)) {
+      PRINTF("  ");
+      PRINT6ADDR(&uip_ds6_if.addr_list[i].ipaddr);
+      PRINTF("\n");
+	break;
+      if (state == ADDR_TENTATIVE) {
+        uip_ds6_if.addr_list[i].state = ADDR_PREFERRED;
+      }
+    }
+  }
+
+  return i;
+}
 /*---------------------------------------------------------------------------*/
 static PT_THREAD(handle_connection(struct psock *p))
 {
 
 PRINTF("[!!][!!]Our Debug: server.c handle_connection\n");
-  /*
-   * A protosocket's protothread must start with a PSOCK_BEGIN(), with
-   * the protosocket as argument.
-   *
-   * Remember that the same rules as for protothreads apply: do NOT
-   * use local variables unless you are very sure what you are doing!
-   * Local (stack) variables are not preserved when the protothread
-   * blocks.
-   */
+
   PSOCK_BEGIN(p);
 PRINTF("[!!][!!]server.c after begin\n");
-  /*
-   * We start by sending out a welcoming message. The message is sent
-   * using the PSOCK_SEND_STR() function that sends a null-terminated
-   * string.
-   */
- // PSOCK_SEND_STR(p, "Welcome, please type something and press return.\n");
-//PRINTF("[!!][!!]Our Debug: server.c after welcome");
-  /*
-   * Next, we use the PSOCK_READTO() function to read incoming data
-   * from the TCP connection until we get a newline character. The
-   * number of bytes that we actually keep is dependant of the length
-   * of the input buffer that we use. Since we only have a 10 byte
-   * buffer here (the buffer[] array), we can only remember the first
-   * 10 bytes received. The rest of the line up to the newline simply
-   * is discarded.
-   */
+
   PSOCK_READTO(p, '\n');
   	PRINTF("[!!][!!]Our Debug: server.c get content length:%d, %s\n", PSOCK_DATALEN(p), buffer);
-  /*
-   * And we send back the contents of the buffer. The PSOCK_DATALEN()
-   * function provides us with the length of the data that we've
-   * received. Note that this length will not be longer than the input
-   * buffer we're using.
-   */
-if (strncmp(buffer, "GET / ", 6) == 0) {
-	  PSOCK_SEND_STR(p, "HTTP/1.1 200 OK\nContent-Type:text/html\nContent-Length:109\n\n");
-	  //PSOCK_SEND(p, buffer, PSOCK_DATALEN(p));
 
-	  PSOCK_SEND_STR(p, "<frameset cols=\"*\"><frame src=\"http://fanyi.youdao.com/translate?i=this%20is%20sensor%20speaking\"></frameset>");
+if (strncmp(buffer, "GET / ", 6) == 0) {
+uint8_t i = sprint_local_addresses();
+SPRINT6ADDRHALF(buffer, &uip_ds6_if.addr_list[i].ipaddr);
+SPRINT6ADDRHALF(buffer+strlen(buffer), &uip_ds6_if.addr_list[i].ipaddr + 8);
+buffer[39]='\0';
+sprintf(buffer+strlen(buffer), "\"></frameset>");
+
+PSOCK_SEND_STR(p, "HTTP/1.1 200 OK\nContent-Type:text/html\nContent-Length:139\n\n");
+	  //PSOCK_SEND(p, buffer, PSOCK_DATALEN(p));
+	  PSOCK_SEND_STR(p, "<frameset cols=\"*\"><frame src=\"http://[2001:da8:bf:15:212:4b00:232:1]/piserver/init?ip=");
+//PSOCK_SEND_STR(p, "2001:0da8:00bf:0015:0212:4b00:0232:a255");
+PSOCK_SEND_STR(p, buffer);
 }
-  /*
-   * We close the protosocket.
-   */
+ 
   PSOCK_CLOSE(p);
 PRINTF("[!!][!!]Our Debug: server.c close socket\n");
-  /*
-   * And end the protosocket's protothread.
-   */
+
   PSOCK_END(p);
 }
 
@@ -192,6 +165,17 @@ fillVDDMessage(unsigned offset) {
   }
 }
 
+static void
+fillRawData() {
+  fullMessage = 0;
+  fillTempMessage(0);
+  fillHumidityMessage(strlen(buf));
+  fillLightMessage(strlen(buf));
+  fillChipTempMessage(strlen(buf));
+  fillVDDMessage(strlen(buf));
+  fullMessage = 1;
+}
+
 extern int inet_pton6(const char *src, unsigned char *dst);
 
 static void setListener() {
@@ -201,6 +185,7 @@ static void setListener() {
     int port = 0;
 	addr_begin = strchr(buf, ' ') + 1;
 	addr_end = strchr(addr_begin, ' ');
+    
     *addr_end = '\0';
     port = atoi(addr_end + 1);
 	succ = inet_pton6(addr_begin, temp);
@@ -220,6 +205,7 @@ static void setListener() {
 	if(!g_conn) {
 	    PRINTF("udp_new g_conn error.\n");
 	}
+	listenerport = port;
 	// udp_bind(g_conn, UIP_HTONS(GLOBAL_CONN_PORT));
 	sprintf(buf, "Set Successfully!\n");
 	hasListener = 1;
@@ -250,8 +236,19 @@ tcpip_handler(void)
         fillVDDMessage(0);
     } else if (strncmp(buf, "light", 5) == 0) {
 		fillLightMessage(0);
+    } else if (strncmp(buf, "rawdata", 7) == 0) {
+		fillRawData();
     } else if (strncmp(buf, "setlistener ", 12) == 0) {
 		setListener();
+    } else if (strncmp(buf, "getlistener", 11) == 0) {
+	if (hasListener) {
+		SPRINT6ADDRHALF(buf, &ipaddr);
+		SPRINT6ADDRHALF(buf+strlen(buf), &ipaddr + 8);
+		buf[39]=' ';
+		sprintf(buf+40, "%d\n", listenerport);
+	} else {
+		sprintf(buf, "N/A\n");
+	}
     } else if (strncmp(buf, "removelistener", 14) == 0) {
 		hasListener = 0;
 		sprintf(buf, "Remove Successfully!\n");
@@ -266,7 +263,7 @@ tcpip_handler(void)
     	  	sprintf(buf, "Interval Set Successfully!\n");
  	  }
     } else {
-	sprintf(buf, "Unrecognized Command!\ntemp/humi/chiptemp/vdd/light/setlistener addr6 port/removelistener/setinterval seconds\n");
+	sprintf(buf, "Unrecognized Command!\ntemp/humi/chiptemp/vdd/light/rawdata/setlistener addr6 port/removelistener/setinterval seconds\n");
     }
     uip_udp_packet_send(server_conn, buf, strlen(buf));
 //    uip_udp_packet_send(server_conn, buf, len);
@@ -288,27 +285,11 @@ PROCESS_THREAD(udp_client_process, ev, data)
   while(1) {
     PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
     if (hasListener) {
-  	fullMessage = 0;
 	leds_on(LEDS_GREEN);
 	printf("sending data...\n");
-
-	fillTempMessage(0);
-
-	//uip_udp_packet_send(g_conn, buf, strlen(buf));
-
-	fillHumidityMessage(strlen(buf));
-	//uip_udp_packet_send(g_conn, buf, strlen(buf));
-
-	fillLightMessage(strlen(buf));
-	//uip_udp_packet_send(g_conn, buf, strlen(buf));
-
-	fillChipTempMessage(strlen(buf));
-	//uip_udp_packet_send(g_conn, buf, strlen(buf));
-
-	fillVDDMessage(strlen(buf));
+	fillRawData();
 	uip_udp_packet_send(g_conn, buf, strlen(buf));
         leds_off(LEDS_GREEN);
-  	fullMessage = 1;
     }
     etimer_reset(&et);
   }
