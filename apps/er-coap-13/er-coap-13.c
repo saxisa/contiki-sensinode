@@ -63,7 +63,7 @@
 static struct uip_udp_conn *udp_conn = NULL;
 static uint16_t current_mid = 0;
 
-uint8_t coap_error_code = NO_ERROR;
+coap_status_t coap_error_code = NO_ERROR;
 char *coap_error_message = "";
 /*-----------------------------------------------------------------------------------*/
 /*- LOCAL HELP FUNCTIONS ------------------------------------------------------------*/
@@ -122,7 +122,6 @@ coap_set_option_header(unsigned int delta, size_t length, uint8_t *buffer)
   buffer[0] = coap_option_nibble(delta)<<4 | coap_option_nibble(length);
 
   /* avoids code duplication without function overhead */
-
   do
   {
     if (*x>268)
@@ -410,7 +409,7 @@ coap_send_message(uip_ipaddr_t *addr, uint16_t port, uint8_t *data, uint16_t len
   udp_conn->rport = 0;
 }
 /*-----------------------------------------------------------------------------------*/
-uint8_t
+coap_status_t
 coap_parse_message(void *packet, uint8_t *data, uint16_t data_len)
 {
   unsigned int option_number = 0;
@@ -457,8 +456,6 @@ uint8_t *current_option;
   /* parse options */
   memset(coap_pkt->options, 0, sizeof(coap_pkt->options));
   current_option += coap_pkt->token_len;
-
-
   while (current_option < data+data_len)
   {
     /* Payload marker 0xFF, currently only checking for 0xF* because rest is reserved */
@@ -700,7 +697,7 @@ coap_set_header_content_type(void *packet, unsigned int content_type)
 {
   coap_packet_t *const coap_pkt = (coap_packet_t *) packet;
 
-  coap_pkt->content_type = (uint8_t) content_type;
+  coap_pkt->content_type = (coap_content_type_t) content_type;
   SET_OPTION(coap_pkt, COAP_OPTION_CONTENT_TYPE);
   return 1;
 }

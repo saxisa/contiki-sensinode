@@ -121,84 +121,89 @@ typedef enum {
 } coap_method_t;
 
 /* CoAP response codes */
+typedef enum {
+  NO_ERROR = 0,
 
-#define NO_ERROR  0
+  CREATED_2_01 = 65,                    /* CREATED */
+  DELETED_2_02 = 66,                    /* DELETED */
+  VALID_2_03 = 67,                      /* NOT_MODIFIED */
+  CHANGED_2_04 = 68,                    /* CHANGED */
+  CONTENT_2_05 = 69,                    /* OK */
 
-#define CREATED_2_01  65                    /* CREATED */
-#define DELETED_2_02  66                    /* DELETED */
-#define VALID_2_03  67                      /* NOT_MODIFIED */
-#define CHANGED_2_04  68                    /* CHANGED */
-#define CONTENT_2_05  69                    /* OK */
+  BAD_REQUEST_4_00 = 128,               /* BAD_REQUEST */
+  UNAUTHORIZED_4_01 = 129,              /* UNAUTHORIZED */
+  BAD_OPTION_4_02 = 130,                /* BAD_OPTION */
+  FORBIDDEN_4_03 = 131,                 /* FORBIDDEN */
+  NOT_FOUND_4_04 = 132,                 /* NOT_FOUND */
+  METHOD_NOT_ALLOWED_4_05 = 133,        /* METHOD_NOT_ALLOWED */
+  NOT_ACCEPTABLE_4_06 = 134,            /* NOT_ACCEPTABLE */
+  PRECONDITION_FAILED_4_12 = 140,       /* BAD_REQUEST */
+  REQUEST_ENTITY_TOO_LARGE_4_13 = 141,  /* REQUEST_ENTITY_TOO_LARGE */
+  UNSUPPORTED_MEDIA_TYPE_4_15 = 143,    /* UNSUPPORTED_MEDIA_TYPE */
 
-#define BAD_REQUEST_4_00  128               /* BAD_REQUEST */
-#define UNAUTHORIZED_4_01  129              /* UNAUTHORIZED */
-#define BAD_OPTION_4_02  130                /* BAD_OPTION */
-#define FORBIDDEN_4_03  131                 /* FORBIDDEN */
-#define NOT_FOUND_4_04  132                 /* NOT_FOUND */
-#define METHOD_NOT_ALLOWED_4_05  133        /* METHOD_NOT_ALLOWED */
-#define NOT_ACCEPTABLE_4_06  134            /* NOT_ACCEPTABLE */
-#define PRECONDITION_FAILED_4_12  140       /* BAD_REQUEST */
-#define REQUEST_ENTITY_TOO_LARGE_4_13  141  /* REQUEST_ENTITY_TOO_LARGE */
-#define UNSUPPORTED_MEDIA_TYPE_4_15  143    /* UNSUPPORTED_MEDIA_TYPE */
+  INTERNAL_SERVER_ERROR_5_00 = 160,     /* INTERNAL_SERVER_ERROR */
+  NOT_IMPLEMENTED_5_01 = 161,           /* NOT_IMPLEMENTED */
+  BAD_GATEWAY_5_02 = 162,               /* BAD_GATEWAY */
+  SERVICE_UNAVAILABLE_5_03 = 163,       /* SERVICE_UNAVAILABLE */
+  GATEWAY_TIMEOUT_5_04 = 164,           /* GATEWAY_TIMEOUT */
+  PROXYING_NOT_SUPPORTED_5_05 = 165,    /* PROXYING_NOT_SUPPORTED */
 
-#define INTERNAL_SERVER_ERROR_5_00  160     /* INTERNAL_SERVER_ERROR */
-#define NOT_IMPLEMENTED_5_01  161           /* NOT_IMPLEMENTED */
-#define BAD_GATEWAY_5_02  162               /* BAD_GATEWAY */
-#define SERVICE_UNAVAILABLE_5_03  163       /* SERVICE_UNAVAILABLE */
-#define GATEWAY_TIMEOUT_5_04  164           /* GATEWAY_TIMEOUT */
-#define PROXYING_NOT_SUPPORTED_5_05  165    /* PROXYING_NOT_SUPPORTED */
+  /* Erbium errors */
+  MEMORY_ALLOCATION_ERROR = 192,
+  PACKET_SERIALIZATION_ERROR,
 
-/* Erbium errors */
-#define MEMORY_ALLOCATION_ERROR  192
-#define PACKET_SERIALIZATION_ERROR 193
+  /* Erbium hooks */
+  MANUAL_RESPONSE
 
-/* Erbium hooks */
-#define MANUAL_RESPONSE 194
-
+} coap_status_t;
 
 /* CoAP header options */
-#define COAP_OPTION_IF_MATCH 1        /* 0-8 B */
-#define COAP_OPTION_URI_HOST 3        /* 1-255 B */
-#define COAP_OPTION_ETAG 4            /* 1-8 B */
-#define COAP_OPTION_IF_NONE_MATCH 5   /* 0 B */
-#define COAP_OPTION_OBSERVE 6         /* 0-3 B */
-#define COAP_OPTION_URI_PORT 7        /* 0-2 B */
-#define COAP_OPTION_LOCATION_PATH 8   /* 0-255 B */
-#define COAP_OPTION_URI_PATH 11       /* 0-255 B */
-#define COAP_OPTION_CONTENT_TYPE 12   /* 0-2 B */
-#define COAP_OPTION_MAX_AGE 14        /* 0-4 B */
-#define COAP_OPTION_URI_QUERY 15      /* 0-270 B */
-#define COAP_OPTION_ACCEPT 16         /* 0-2 B */
-#define COAP_OPTION_TOKEN 19          /* 1-8 B */
-#define COAP_OPTION_LOCATION_QUERY 20  /* 1-270 B */
-#define COAP_OPTION_BLOCK2 23         /* 1-3 B */
-#define COAP_OPTION_BLOCK1 27         /* 1-3 B */
-#define COAP_OPTION_SIZE 28           /* 0-4 B */
-#define COAP_OPTION_PROXY_URI 35      /* 1-270 B */
+typedef enum {
+  COAP_OPTION_IF_MATCH = 1,       /* 0-8 B */
+  COAP_OPTION_URI_HOST = 3,       /* 1-255 B */
+  COAP_OPTION_ETAG = 4,           /* 1-8 B */
+  COAP_OPTION_IF_NONE_MATCH = 5,  /* 0 B */
+  COAP_OPTION_OBSERVE = 6,        /* 0-3 B */
+  COAP_OPTION_URI_PORT = 7,       /* 0-2 B */
+  COAP_OPTION_LOCATION_PATH = 8,  /* 0-255 B */
+  COAP_OPTION_URI_PATH = 11,      /* 0-255 B */
+  COAP_OPTION_CONTENT_TYPE = 12,  /* 0-2 B */
+  COAP_OPTION_MAX_AGE = 14,       /* 0-4 B */
+  COAP_OPTION_URI_QUERY = 15,     /* 0-270 B */
+  COAP_OPTION_ACCEPT = 16,        /* 0-2 B */
+  COAP_OPTION_TOKEN = 19,         /* 1-8 B */
+  COAP_OPTION_LOCATION_QUERY = 20, /* 1-270 B */
+  COAP_OPTION_BLOCK2 = 23,        /* 1-3 B */
+  COAP_OPTION_BLOCK1 = 27,        /* 1-3 B */
+  COAP_OPTION_SIZE = 28,          /* 0-4 B */
+  COAP_OPTION_PROXY_URI = 35,     /* 1-270 B */
+} coap_option_t;
 
 /* CoAP Content-Types */
-#define TEXT_PLAIN 0 
-#define   TEXT_XML 1  /* Indented types are not in the initial registry. */
-#define   TEXT_CSV 2 
-#define   TEXT_HTML 3 
-#define   IMAGE_GIF 21 
-#define   IMAGE_JPEG 22 
-#define   IMAGE_PNG 23 
-#define   IMAGE_TIFF 24 
-#define   AUDIO_RAW 25 
-#define   VIDEO_RAW 26 
-#define APPLICATION_LINK_FORMAT 40 
-#define APPLICATION_XML 41 
-#define APPLICATION_OCTET_STREAM 42 
-#define   APPLICATION_RDF_XML 43 
-#define   APPLICATION_SOAP_XML 44 
-#define   APPLICATION_ATOM_XML 45 
-#define   APPLICATION_XMPP_XML 46 
-#define APPLICATION_EXI 47 
-#define   APPLICATION_FASTINFOSET 48 
-#define   APPLICATION_SOAP_FASTINFOSET 49 
-#define APPLICATION_JSON 50 
-#define APPLICATION_X_OBIX_BINARY 51
+typedef enum {
+  TEXT_PLAIN = 0,
+    TEXT_XML = 1, /* Indented types are not in the initial registry. */
+    TEXT_CSV = 2,
+    TEXT_HTML = 3,
+    IMAGE_GIF = 21,
+    IMAGE_JPEG = 22,
+    IMAGE_PNG = 23,
+    IMAGE_TIFF = 24,
+    AUDIO_RAW = 25,
+    VIDEO_RAW = 26,
+  APPLICATION_LINK_FORMAT = 40,
+  APPLICATION_XML = 41,
+  APPLICATION_OCTET_STREAM = 42,
+    APPLICATION_RDF_XML = 43,
+    APPLICATION_SOAP_XML = 44,
+    APPLICATION_ATOM_XML = 45,
+    APPLICATION_XMPP_XML = 46,
+  APPLICATION_EXI = 47,
+    APPLICATION_FASTINFOSET = 48,
+    APPLICATION_SOAP_FASTINFOSET = 49,
+  APPLICATION_JSON = 50,
+    APPLICATION_X_OBIX_BINARY = 51
+} coap_content_type_t;
 
 /* Parsed message struct */
 typedef struct {
@@ -211,7 +216,7 @@ typedef struct {
 
   uint8_t options[COAP_OPTION_PROXY_URI / OPTION_MAP_SIZE + 1]; /* Bitmap to check if option is set */
 
-  uint8_t content_type; /* Parse options once and store; allows setting options in random order  */
+  coap_content_type_t content_type; /* Parse options once and store; allows setting options in random order  */
   uint32_t max_age;
   size_t proxy_uri_len;
   const char *proxy_uri;
@@ -292,8 +297,8 @@ typedef struct {
 #define COAP_SERIALIZE_BLOCK_OPTION(number, field, text)      \
     if (IS_OPTION(coap_pkt, number)) \
     { \
-      uint32_t block = coap_pkt->field##_num << 4; \
       PRINTF(text" [%lu%s (%u B/blk)]\n", coap_pkt->field##_num, coap_pkt->field##_more ? "+" : "", coap_pkt->field##_size); \
+      uint32_t block = coap_pkt->field##_num << 4; \
       if (coap_pkt->field##_more) block |= 0x8; \
       block |= 0xF & coap_log_2(coap_pkt->field##_size/16); \
       PRINTF(text" encoded: 0x%lX\n", block); \
@@ -302,7 +307,7 @@ typedef struct {
     }
 
 /* To store error code and human-readable payload */
-extern uint8_t coap_error_code;
+extern coap_status_t coap_error_code;
 extern char *coap_error_message;
 
 void coap_init_connection(uint16_t port);
@@ -311,7 +316,7 @@ uint16_t coap_get_mid(void);
 void coap_init_message(void *packet, coap_message_type_t type, uint8_t code, uint16_t mid);
 size_t coap_serialize_message(void *packet, uint8_t *buffer);
 void coap_send_message(uip_ipaddr_t *addr, uint16_t port, uint8_t *data, uint16_t length);
-uint8_t coap_parse_message(void *request, uint8_t *data, uint16_t data_len);
+coap_status_t coap_parse_message(void *request, uint8_t *data, uint16_t data_len);
 
 int coap_get_query_variable(void *packet, const char *name, const char **output);
 int coap_get_post_variable(void *packet, const char *name, const char **output);

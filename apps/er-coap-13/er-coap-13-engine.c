@@ -671,5 +671,4 @@ const struct rest_implementation coap_rest_implementation = {
     APPLICATION_JSON,
     APPLICATION_X_OBIX_BINARY
   }
-
 };
